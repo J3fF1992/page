@@ -1,10 +1,8 @@
-// URL do backend
-const BACKEND_URL = "https://253a-2804-1b3-a2c0-5add-ad45-1916-cd96-ae9b.ngrok-free.app";
+const BACKEND_URL = "https://253a-2804-1b3-a2c0-5add-ad45-1916-cd96-ae9b.ngrok-free.app"; // URL do backend
 
-// Função para renderizar o Payment Brick
+const mp = new MercadoPago('APP_USR-e933098e-751d-437a-8653-ceb11d01aaf3', { locale: 'pt-BR' });
+
 const renderPaymentBrick = async (preferenceId) => {
-    const mp = new MercadoPago('APP_USR-e933098e-751d-437a-8653-ceb11d01aaf3', { locale: 'pt-BR' });
-
     const bricksBuilder = mp.bricks();
     const settings = {
         initialization: {
@@ -60,18 +58,23 @@ const renderPaymentBrick = async (preferenceId) => {
     await bricksBuilder.create("payment", "paymentBrick_container", settings);
 };
 
-// Função para buscar o preferenceId do backend
-fetch(`${BACKEND_URL}/create_preference`, {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ amount: 150.0 }) // Valor a ser pago
-})
-    .then((response) => response.json())
-    .then((data) => {
-        renderPaymentBrick(data.preferenceId); // Renderiza o Payment Brick com o preferenceId
+// Função para obter o preferenceId do backend e carregar o Payment Brick
+const initializePayment = (amount) => {
+    fetch(`${BACKEND_URL}/create_preference`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ amount: amount }), // Valor a ser pago
     })
-    .catch((error) => {
-        console.error("Erro ao obter o preferenceId:", error);
-    });
+        .then((response) => response.json())
+        .then((data) => {
+            renderPaymentBrick(data.preferenceId); // Renderiza o Payment Brick com o preferenceId
+        })
+        .catch((error) => {
+            console.error("Erro ao obter o preferenceId:", error);
+        });
+};
+
+// Inicializa o Payment Brick com um valor padrão ou dinâmico
+initializePayment(150.0); // Valor do pagamento
