@@ -1,12 +1,14 @@
-const mp = new MercadoPago('APP_USR-e933098e-751d-437a-8653-ceb11d01aaf3', { locale: 'pt-BR' }); // Substitua YOUR_PUBLIC_KEY pela sua chave pública do Mercado Pago
+// URL do backend
+const BACKEND_URL = "https://253a-2804-1b3-a2c0-5add-ad45-1916-cd96-ae9b.ngrok-free.app";
 
-const bricksBuilder = mp.bricks();
+// Função para renderizar o Payment Brick
+const renderPaymentBrick = async (preferenceId) => {
+    const mp = new MercadoPago('APP_USR-e933098e-751d-437a-8653-ceb11d01aaf3', { locale: 'pt-BR' });
 
-const renderPaymentBrick = async () => {
+    const bricksBuilder = mp.bricks();
     const settings = {
         initialization: {
-            amount: 100, // Valor do pagamento em reais (ajuste conforme necessário)
-            preferenceId: "12282333-4865669b-8baa-4963-ab3b-6ebc41c6aa0d", // Substitua pelo ID da preferência gerada no backend
+            preferenceId: preferenceId, // Usa o preferenceId recebido do backend
         },
         customization: {
             paymentMethods: {
@@ -16,17 +18,17 @@ const renderPaymentBrick = async () => {
             },
             visual: {
                 style: {
-                    theme: "default", // Altere para 'dark' ou outros temas se necessário
+                    theme: "default",
                 },
             },
         },
         callbacks: {
             onReady: () => {
-                console.log("Brick pronto!");
+                console.log("Payment Brick carregado.");
             },
             onSubmit: (formData) => {
                 return new Promise((resolve, reject) => {
-                    fetch('/process_payment', {
+                    fetch(`${BACKEND_URL}/process_payment`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -35,18 +37,22 @@ const renderPaymentBrick = async () => {
                     })
                     .then((response) => response.json())
                     .then((data) => {
-                        alert("Pagamento processado com sucesso!");
-                        resolve();
+                        if (data.status === "success") {
+                            alert("Pagamento realizado com sucesso!");
+                            resolve();
+                        } else {
+                            alert("Erro no pagamento.");
+                            reject(data);
+                        }
                     })
                     .catch((error) => {
-                        alert("Erro ao processar o pagamento.");
-                        console.error(error);
-                        reject();
+                        console.error("Erro na comunicação com o backend:", error);
+                        reject(error);
                     });
                 });
             },
             onError: (error) => {
-                console.error("Erro no Brick:", error);
+                console.error("Erro no Payment Brick:", error);
             },
         },
     };
@@ -54,4 +60,18 @@ const renderPaymentBrick = async () => {
     await bricksBuilder.create("payment", "paymentBrick_container", settings);
 };
 
-renderPaymentBrick();
+// Função para buscar o preferenceId do backend
+fetch(`${BACKEND_URL}/create_preference`, {
+    method: "POST",
+    headers: {
+        "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ amount: 150.0 }) // Valor a ser pago
+})
+    .then((response) => response.json())
+    .then((data) => {
+        renderPaymentBrick(data.preferenceId); // Renderiza o Payment Brick com o preferenceId
+    })
+    .catch((error) => {
+        console.error("Erro ao obter o preferenceId:", error);
+    });
